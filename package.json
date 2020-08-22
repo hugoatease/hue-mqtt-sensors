@@ -1,0 +1,11 @@
+{
+  "name": "hue-sensors",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "argparse": "^2.0.0",
+    "mqtt": "^4.2.0",
+    "node-hue-api": "^4.0.9"
+  }
+}
