@@ -46,6 +46,8 @@ const getSensorValue = (sensor) => {
       return sensor.presence;
     case "ZLLLightLevel":
       return sensor.lightlevel;
+    case "CLIPGenericStatus":
+      return sensor.status;
   }
 };
 
