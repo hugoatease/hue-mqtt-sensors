@@ -5,7 +5,8 @@ const mqtt = require("mqtt");
 const yargs = require("yargs");
 const MQTTPattern = require("mqtt-pattern");
 const { parse } = require("yargs");
-const { isNumber } = require("lodash");
+const { get, isNumber } = require("lodash");
+const persist = require("persist-json")("hue-mqtt-sensors");
 
 const FUNCTION_PATTERN = "hue-sensors/+function/#";
 const TOPIC_PATTERN_SET = "hue-sensors/set/+type/+id";
@@ -13,25 +14,17 @@ const TOPIC_PATTERN_SET = "hue-sensors/set/+type/+id";
 const argv = yargs.options({
   "client-id": {
     describe: "Hue Remote API Client ID",
-    demandOption: true,
   },
   "client-secret": {
     describe: "Hue Remote API Client Secret",
-    demandOption: true,
   },
   "mqtt-url": {
     describe: "MQTT connection URL",
     demandOption: true,
   },
-  "access-token": {
-    demandOption: true,
-  },
-  "refresh-token": {
-    demandOption: true,
-  },
-  "bridge-username": {
-    demandOption: true,
-  },
+  "access-token": {},
+  "refresh-token": {},
+  "bridge-username": {},
   "mqtt-prefix": {
     default: "hue-sensors",
   },
@@ -119,12 +112,46 @@ const handleMessage = (api) => (topic, ...params) => {
   }
 };
 
+const getLocalApi = async () => {
+  const searchResults = await hue.discovery.nupnpSearch();
+  const device = searchResults[0];
+  const bridgeAddress = device.ipaddress;
+  const config = persist.load("config.json");
+
+  const bridgeConfig = get(config, ["bridges", bridgeAddress]);
+
+  if (bridgeConfig) {
+    return hue.api.createLocal(bridgeAddress).connect(bridgeConfig.username);
+  } else {
+    const unauthenticatedApi = await hue.api
+      .createLocal(bridgeAddress)
+      .connect();
+    const user = await unauthenticatedApi.users.createUser(
+      "hue-mqtt-sensors",
+      device.name
+    );
+    persist.save("config.json", {
+      bridges: {
+        [bridgeAddress]: {
+          username: user.username,
+        },
+      },
+    });
+    return hue.api.createLocal(bridgeAddress).connect(user.username);
+  }
+};
+
 (async () => {
-  const api = await remote.connectWithTokens(
-    argv.accessToken,
-    argv.refreshToken,
-    argv.bridgeUsername
-  );
+  let api;
+  if (argv.accessToken && argv.refreshToken) {
+    api = await remote.connectWithTokens(
+      argv.accessToken,
+      argv.refreshToken,
+      argv.bridgeUsername
+    );
+  } else {
+    api = await getLocalApi();
+  }
 
   await publishAllSensors(api);
   client.on("message", handleMessage(api));
