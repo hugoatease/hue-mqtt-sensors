@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const hue = require("node-hue-api").v3;
 const mqtt = require("mqtt");
 const yargs = require("yargs");
