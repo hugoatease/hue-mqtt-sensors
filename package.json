@@ -1,8 +1,8 @@
 {
-  "name": "hue-sensors",
-  "version": "1.0.0",
+  "name": "hue-mqtt-sensors",
+  "version": "0.1.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "lodash": "^4.17.20",
     "mqtt": "^4.2.0",
